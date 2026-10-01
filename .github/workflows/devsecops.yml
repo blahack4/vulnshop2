@@ -3,7 +3,7 @@ on: [push]
 
 permissions:
   contents: read
-  
+
 jobs:
   secrets:
     runs-on: ubuntu-latest
@@ -26,14 +26,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker run --rm -v "$PWD:/src" aquasec/trivy fs --exit-code 1 --severity CRITICAL /src
-
- - name: SBOM (CycloneDX)
+      - name: SBOM (CycloneDX)
         run: docker run --rm -v "$PWD:/src" anchore/syft dir:/src -o cyclonedx-json > sbom.json
       - uses: actions/upload-artifact@v4
         with:
           name: sbom
           path: sbom.json
-            build:
+
+  build:
     needs: [secrets, sast, sca]
     runs-on: ubuntu-latest
     steps:
@@ -44,7 +44,7 @@ jobs:
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy
           image --exit-code 1 --severity CRITICAL --ignore-unfixed vulnshop:${{ github.sha }}
 
-            dast:
+  dast:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
@@ -61,7 +61,3 @@ jobs:
         with:
           name: zap-report
           path: zap-report.html
-  # A compléter pendant l'atelier 2 :
-  #  - build de l'image + scan de l'image (Trivy)
-  #  - SBOM (Syft) publié comme artefact
-  #  - DAST : lancer l'application puis OWASP ZAP baseline sur http://localhost:5000
