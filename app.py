@@ -35,7 +35,6 @@ def home():
 @app.get("/users")
 def find_user():
     email = request.args.get("email", "")
-    # Corrigé A05 : requête paramétrée, la donnée ne devient jamais du code.
     rows = db().execute(
         "SELECT id, email, name FROM users WHERE email = ?", (email,)
     ).fetchall()
@@ -52,7 +51,8 @@ def get_order(order_id):
     return jsonify(dict(row))
 
 
+# Initialise la base à l'import (gunicorn n'exécute pas le bloc __main__).
+init_db()
+
 if __name__ == "__main__":
-    init_db()
-    # Serveur de dev uniquement : écoute en local. En conteneur, c'est gunicorn (0.0.0.0) qui sert.
     app.run(host="127.0.0.1", port=5000)
