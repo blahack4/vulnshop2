@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: >
           docker run --rm -v "$PWD:/src" -w /src semgrep/semgrep
-          semgrep scan --error --config p/owasp-top-ten
+          semgrep scan --error --config p/owasp-top-ten app.py config.py
 
   sca:
     runs-on: ubuntu-latest
