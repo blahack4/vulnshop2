@@ -1,8 +1,4 @@
-"""VulnShop : boutique de démonstration pour la formation DevSecOps.
-
-ATTENTION : application volontairement vulnérable, à usage pédagogique uniquement.
-Ne jamais la déployer ailleurs que dans le pipeline de formation.
-"""
+"""VulnShop : boutique de démonstration pour la formation DevSecOps."""
 import sqlite3
 from flask import Flask, request, jsonify
 
@@ -33,24 +29,24 @@ def init_db():
 
 @app.get("/")
 def home():
-    return "VulnShop - application volontairement vulnerable (formation DevSecOps)"
+    return "VulnShop (formation DevSecOps)"
 
 
 @app.get("/users")
 def find_user():
     email = request.args.get("email", "")
-    # FAILLE VOLONTAIRE (A05 Injection) : requête construite par concaténation.
+    # Corrigé A05 : requête paramétrée, la donnée ne devient jamais du code.
     rows = db().execute(
-    "SELECT id, email, name FROM users WHERE email = ?",
-    (email,),
+        "SELECT id, email, name FROM users WHERE email = ?", (email,)
     ).fetchall()
     return jsonify([dict(r) for r in rows])
 
 
 @app.get("/orders/<int:order_id>")
 def get_order(order_id):
-    # FAILLE VOLONTAIRE (A01 / API1 BOLA) : aucune vérification du propriétaire.
-    row = db().execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
+    row = db().execute(
+        "SELECT id, item, total FROM orders WHERE id = ?", (order_id,)
+    ).fetchone()
     if row is None:
         return jsonify({"error": "not found"}), 404
     return jsonify(dict(row))
@@ -58,4 +54,5 @@ def get_order(order_id):
 
 if __name__ == "__main__":
     init_db()
-    app.run(host="0.0.0.0", port=5000)
+    # Serveur de dev uniquement : écoute en local. En conteneur, c'est gunicorn (0.0.0.0) qui sert.
+    app.run(host="127.0.0.1", port=5000)
