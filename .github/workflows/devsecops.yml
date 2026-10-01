@@ -1,6 +1,9 @@
 name: devsecops
 on: [push]
 
+permissions:
+  contents: read
+  
 jobs:
   secrets:
     runs-on: ubuntu-latest
@@ -24,6 +27,40 @@ jobs:
       - uses: actions/checkout@v4
       - run: docker run --rm -v "$PWD:/src" aquasec/trivy fs --exit-code 1 --severity CRITICAL /src
 
+ - name: SBOM (CycloneDX)
+        run: docker run --rm -v "$PWD:/src" anchore/syft dir:/src -o cyclonedx-json > sbom.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+            build:
+    needs: [secrets, sast, sca]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t vulnshop:${{ github.sha }} .
+      - name: Scan de l'image
+        run: >
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy
+          image --exit-code 1 --severity CRITICAL --ignore-unfixed vulnshop:${{ github.sha }}
+
+            dast:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t vulnshop:test .
+      - run: docker run -d --name vulnshop -p 5000:5000 vulnshop:test && sleep 5
+      - run: chmod a+w "$PWD"
+      - name: OWASP ZAP baseline
+        run: >
+          docker run --rm --network host -v "$PWD:/zap/wrk:rw" ghcr.io/zaproxy/zaproxy:stable
+          zap-baseline.py -t http://localhost:5000 -r zap-report.html -I
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-report
+          path: zap-report.html
   # A compléter pendant l'atelier 2 :
   #  - build de l'image + scan de l'image (Trivy)
   #  - SBOM (Syft) publié comme artefact
