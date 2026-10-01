@@ -5,3 +5,7 @@ venv/
 *.sbom.json
 sbom.json
 .pytest_cache/
+cosign.key
+cosign.pub
+sbom.sig
+sbom.json
